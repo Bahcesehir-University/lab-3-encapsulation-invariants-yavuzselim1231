@@ -1,207 +1,264 @@
 // ============================================================
 // CMP1002 - Lab: Encapsulation and Invariants
-// Test File - test.cpp (Catch2)
+// Student Version - MainProgram.cpp
+// ============================================================
+// Instructions:
+//   Complete all TODO sections below.
+//   Do NOT modify function signatures or class interfaces.
+//   All logic must remain in this single file.
 // ============================================================
 
-#define CATCH_CONFIG_MAIN
+#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <vector>
 
-// Redirect student main so it doesn't conflict with Catch2
-#define main student_main
-#include "MainProgram.cpp"
-#undef main
+using namespace std;
 
-#include "catch.hpp"
+// ================================
+// CLASS DEFINITIONS
+// ================================
 
-// ============================================================
-// TEMPERATURE TESTS (30 points)
-// ============================================================
+// --------------------------------------------------
+// Class: Temperature
+// Represents a temperature in Celsius.
+// Invariant: temperature must be >= -273.15 (absolute zero)
+// --------------------------------------------------
+class Temperature {
+private:
+    double celsius_;
 
-TEST_CASE("Temperature: constructor and getter", "[temperature][normal]") {
-    Temperature t(25.0);
-    REQUIRE(t.getCelsius() == Approx(25.0));
-}
+public:
+    // Constructor: initialize with a Celsius value.
+    // Must enforce the invariant.
+    // Throw std::invalid_argument if value < -273.15
+    explicit Temperature(double celsius) {
+        if (celsius<-273.15){
+            throw invalid_argument("Temperature cannot be below absolute zero");
+        }
+        celsius_=celsius;
+    }
 
-TEST_CASE("Temperature: Fahrenheit conversion", "[temperature][normal]") {
-    Temperature t(100.0);
-    REQUIRE(t.getFahrenheit() == Approx(212.0));
+    // Getter: return the temperature in Celsius
+    double getCelsius() const {
+        return celsius_;
+    }
 
-    Temperature t2(0.0);
-    REQUIRE(t2.getFahrenheit() == Approx(32.0));
+    // Getter: return the temperature converted to Fahrenheit
+    // Formula: F = C * 9/5 + 32
+    double getFahrenheit() const {
+        return celsius_* 9.0 / 5.0  + 32.0;
+    }
 
-    Temperature t3(-40.0);
-    REQUIRE(t3.getFahrenheit() == Approx(-40.0));
-}
+    // Setter: update the temperature in Celsius
+    // Must enforce the invariant.
+    // Throw std::invalid_argument if value < -273.15
+    void setCelsius(double celsius) {
+         if (celsius<-273.15){
+            throw invalid_argument("Temperature cannot be below absolute zero");
+        }
+        celsius_=celsius;
+    }
+};
 
-TEST_CASE("Temperature: setCelsius works", "[temperature][normal]") {
-    Temperature t(0.0);
-    t.setCelsius(50.0);
-    REQUIRE(t.getCelsius() == Approx(50.0));
-    REQUIRE(t.getFahrenheit() == Approx(122.0));
-}
+// --------------------------------------------------
+// Class: BankAccount
+// Represents a simple bank account.
+// Invariants:
+//   - balance must never be negative
+//   - owner name must not be empty
+// --------------------------------------------------
+class BankAccount {
+private:
+    string owner_; // .empty() .length()
+    double balance_;
 
-TEST_CASE("Temperature: absolute zero boundary", "[temperature][boundary]") {
-    // Exactly absolute zero should be allowed
-    Temperature t(-273.15);
-    REQUIRE(t.getCelsius() == Approx(-273.15));
-}
+public:
+    // Constructor: initialize with owner name and starting balance.
+    // Throw std::invalid_argument if owner is empty or balance < 0
+    BankAccount(const string& owner, double initialBalance) {
+        if(initialBalance<0){
+            throw invalid_argument("Initial balance cannot be negative");}
+        if(owner.empty()){
+            throw invalid_argument("Owner cannot be empty");}
+        owner_=owner;
+        balance_=initialBalance;
+    }
 
-TEST_CASE("Temperature: constructor rejects below absolute zero", "[temperature][edge]") {
-    REQUIRE_THROWS_AS(Temperature(-273.16), std::invalid_argument);
-    REQUIRE_THROWS_AS(Temperature(-300.0), std::invalid_argument);
-    REQUIRE_THROWS_AS(Temperature(-1000.0), std::invalid_argument);
-}
+    // Getter: return the owner's name
+    string getOwner() const {
+        return owner_;
+    }
 
-TEST_CASE("Temperature: setCelsius rejects below absolute zero", "[temperature][edge]") {
-    Temperature t(0.0);
-    REQUIRE_THROWS_AS(t.setCelsius(-274.0), std::invalid_argument);
-    // Value should remain unchanged after failed set
-    REQUIRE(t.getCelsius() == Approx(0.0));
-}
+    // Getter: return the current balance
+    double getBalance() const {
+        return balance_;
+    }
 
-// ============================================================
-// BANKACCOUNT TESTS (45 points)
-// ============================================================
+    // Deposit money into the account.
+    // Throw std::invalid_argument if amount <= 0
+    void deposit(double amount) {
+        if(amount<=0){
+            throw invalid_argument("Deposit amount cannot be negative");
+        }
+            balance_+=amount;
+    }
 
-TEST_CASE("BankAccount: constructor and getters", "[bank][normal]") {
-    BankAccount acc("Alice", 1000.0);
-    REQUIRE(acc.getOwner() == "Alice");
-    REQUIRE(acc.getBalance() == Approx(1000.0));
-}
+    // Withdraw money from the account.
+    // Throw std::invalid_argument if amount <= 0
+    // Throw std::runtime_error if insufficient funds
+    void withdraw(double amount) {
+        if(amount <= 0){
+            throw invalid_argument("Withdraw amount cannot be negative");
+        }
+        if(amount > balance_){
+            throw runtime_error("Insufficient funds");
+        }
+        balance_ -= amount;
+    }
 
-TEST_CASE("BankAccount: zero initial balance allowed", "[bank][boundary]") {
-    BankAccount acc("Bob", 0.0);
-    REQUIRE(acc.getBalance() == Approx(0.0));
-}
+    // Transfer money from this account to another.
+    // Throw std::invalid_argument if amount <= 0
+    // Throw std::runtime_error if insufficient funds
+    void transfer(BankAccount& other, double amount) {
+        // TODO: Implement using withdraw() and deposit()
+        if(amount <=0){
+            throw invalid_argument("Transfer amount cannot be negative");
+        }
+        if(amount > balance_){
+            throw runtime_error("Insufficient funds");
+        }
+        withdraw(amount);
+        other.deposit(amount);    }
+};
 
-TEST_CASE("BankAccount: constructor rejects empty owner", "[bank][edge]") {
-    REQUIRE_THROWS_AS(BankAccount("", 100.0), std::invalid_argument);
-}
+// --------------------------------------------------
+// Class: Password
+// Represents a password with strength rules.
+// Invariants:
+//   - password length must be >= 8
+//   - password must contain at least one digit
+// --------------------------------------------------
+class Password {
+private:
+    string password_;
 
-TEST_CASE("BankAccount: constructor rejects negative balance", "[bank][edge]") {
-    REQUIRE_THROWS_AS(BankAccount("Eve", -50.0), std::invalid_argument);
-}
+    // Helper: check if a string contains at least one digit
+    static bool hasDigit(const string& s) {
+        for(char c:s){
+            if(c>='0' && c<='9'){
+                return true;
+            }
+        }
+        return false;
+    }
 
-TEST_CASE("BankAccount: deposit works", "[bank][normal]") {
-    BankAccount acc("Alice", 100.0);
-    acc.deposit(50.0);
-    REQUIRE(acc.getBalance() == Approx(150.0));
-}
+    // Helper: validate password against all rules
+    static void validate(const string& pwd) {
+        if(pwd.length()<8){
+            throw invalid_argument("Password is bigger than 8");
+        }
+        if(!hasDigit(pwd)){
+            throw invalid_argument("Password has not digit");
+        }
+    }
 
-TEST_CASE("BankAccount: deposit rejects zero or negative", "[bank][edge]") {
-    BankAccount acc("Alice", 100.0);
-    REQUIRE_THROWS_AS(acc.deposit(0.0), std::invalid_argument);
-    REQUIRE_THROWS_AS(acc.deposit(-10.0), std::invalid_argument);
-    REQUIRE(acc.getBalance() == Approx(100.0));
-}
+public:
+    // Constructor: create a password.
+    // Must pass validation.
+    explicit Password(const string& pwd) {
+        validate(pwd);
+        password_=pwd;
+    }
 
-TEST_CASE("BankAccount: withdraw works", "[bank][normal]") {
-    BankAccount acc("Alice", 200.0);
-    acc.withdraw(50.0);
-    REQUIRE(acc.getBalance() == Approx(150.0));
-}
+    // Change password: old password must match, new must be valid.
+    // Throw std::invalid_argument if oldPassword doesn't match
+    // Throw std::invalid_argument if newPassword fails validation
+    void change(const string& oldPassword, const string& newPassword) {
+        if(oldPassword != password_){
+            throw invalid_argument("");
+        }
+        validate(newPassword);
+        password_= newPassword;
+    }
 
-TEST_CASE("BankAccount: withdraw entire balance", "[bank][boundary]") {
-    BankAccount acc("Alice", 100.0);
-    acc.withdraw(100.0);
-    REQUIRE(acc.getBalance() == Approx(0.0));
-}
+    // Check if a given string matches the stored password.
+    bool matches(const string& attempt) const {
+        return attempt == password_;
+    }
 
-TEST_CASE("BankAccount: withdraw rejects zero or negative", "[bank][edge]") {
-    BankAccount acc("Alice", 100.0);
-    REQUIRE_THROWS_AS(acc.withdraw(0.0), std::invalid_argument);
-    REQUIRE_THROWS_AS(acc.withdraw(-5.0), std::invalid_argument);
-}
+    // Return the length of the password (safe to expose)
+    size_t getLength() const {
+        return password_.length();
+    }
 
-TEST_CASE("BankAccount: withdraw rejects insufficient funds", "[bank][edge]") {
-    BankAccount acc("Alice", 100.0);
-    REQUIRE_THROWS_AS(acc.withdraw(150.0), std::runtime_error);
-    REQUIRE(acc.getBalance() == Approx(100.0));
-}
+    // NOTE: There is deliberately NO getPassword() method.
+    // Exposing the raw password would break encapsulation.
+};
 
-TEST_CASE("BankAccount: transfer works", "[bank][normal]") {
-    BankAccount alice("Alice", 500.0);
-    BankAccount bob("Bob", 200.0);
-    alice.transfer(bob, 100.0);
-    REQUIRE(alice.getBalance() == Approx(400.0));
-    REQUIRE(bob.getBalance() == Approx(300.0));
-}
 
-TEST_CASE("BankAccount: transfer rejects zero or negative", "[bank][edge]") {
-    BankAccount a("A", 100.0);
-    BankAccount b("B", 100.0);
-    REQUIRE_THROWS_AS(a.transfer(b, 0.0), std::invalid_argument);
-    REQUIRE_THROWS_AS(a.transfer(b, -10.0), std::invalid_argument);
-}
+// ================================
+// MAIN FUNCTION
+// ================================
+int main() {
+    cout << "=== Encapsulation and Invariants Lab ===" << endl;
+    cout << endl;
 
-TEST_CASE("BankAccount: transfer rejects insufficient funds", "[bank][edge]") {
-    BankAccount a("A", 50.0);
-    BankAccount b("B", 100.0);
-    REQUIRE_THROWS_AS(a.transfer(b, 75.0), std::runtime_error);
-    // Both accounts should be unchanged (atomicity)
-    REQUIRE(a.getBalance() == Approx(50.0));
-    REQUIRE(b.getBalance() == Approx(100.0));
-}
+    // --- Temperature Demo ---
+    cout << "--- Temperature ---" << endl;
+    try {
+        Temperature t(100.0);
+        cout << "Celsius: " << t.getCelsius() << endl;
+        cout << "Fahrenheit: " << t.getFahrenheit() << endl;
+        t.setCelsius(-40.0);
+        cout << "Updated Celsius: " << t.getCelsius() << endl;
+        cout << "Updated Fahrenheit: " << t.getFahrenheit() << endl;
+    } catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
+    }
 
-// ============================================================
-// PASSWORD TESTS (25 points)
-// ============================================================
+    // Try invalid temperature
+    try {
+        Temperature bad(-300.0);
+        cout << "This should not print!" << endl;
+    } catch (const invalid_argument& e) {
+        cout << "Caught expected error: " << e.what() << endl;
+    }
+    cout << endl;
 
-TEST_CASE("Password: valid construction", "[password][normal]") {
-    Password pw("Secure99");
-    REQUIRE(pw.matches("Secure99"));
-    REQUIRE(pw.getLength() == 8);
-}
+    // --- BankAccount Demo ---
+    cout << "--- BankAccount ---" << endl;
+    try {
+        BankAccount alice("Alice", 1000.0);
+        BankAccount bob("Bob", 500.0);
+        cout << alice.getOwner() << " balance: " << alice.getBalance() << endl;
 
-TEST_CASE("Password: matches returns false for wrong input", "[password][normal]") {
-    Password pw("MyPass12");
-    REQUIRE_FALSE(pw.matches("MyPass13"));
-    REQUIRE_FALSE(pw.matches("mypass12"));
-    REQUIRE_FALSE(pw.matches(""));
-}
+        alice.deposit(200.0);
+        cout << "After deposit: " << alice.getBalance() << endl;
 
-TEST_CASE("Password: rejects short password", "[password][edge]") {
-    REQUIRE_THROWS_AS(Password("Short1"), std::invalid_argument);
-    REQUIRE_THROWS_AS(Password("Ab1"), std::invalid_argument);
-}
+        alice.transfer(bob, 300.0);
+        cout << "After transfer:" << endl;
+        cout << "  Alice: " << alice.getBalance() << endl;
+        cout << "  Bob:   " << bob.getBalance() << endl;
+    } catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
+    }
+    cout << endl;
 
-TEST_CASE("Password: rejects password without digit", "[password][edge]") {
-    REQUIRE_THROWS_AS(Password("NoDigitsHere"), std::invalid_argument);
-    REQUIRE_THROWS_AS(Password("abcdefgh"), std::invalid_argument);
-}
+    // --- Password Demo ---
+    cout << "--- Password ---" << endl;
+    try {
+        Password pw("Secure99");
+        cout << "Password length: " << pw.getLength() << endl;
+        cout << "Matches 'wrong': " << pw.matches("wrong") << endl;
+        cout << "Matches 'Secure99': " << pw.matches("Secure99") << endl;
+        pw.change("Secure99", "NewPass1");
+        cout << "Password changed successfully." << endl;
+    } catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
+    }
 
-TEST_CASE("Password: boundary - exactly 8 chars with digit", "[password][boundary]") {
-    Password pw("Exactly8");
-    REQUIRE(pw.getLength() == 8);
-}
-
-TEST_CASE("Password: change works with correct old password", "[password][normal]") {
-    Password pw("OldPass1");
-    pw.change("OldPass1", "NewPass2");
-    REQUIRE(pw.matches("NewPass2"));
-    REQUIRE_FALSE(pw.matches("OldPass1"));
-}
-
-TEST_CASE("Password: change rejects wrong old password", "[password][edge]") {
-    Password pw("Correct1");
-    REQUIRE_THROWS_AS(pw.change("Wrong123", "NewPass2"), std::invalid_argument);
-    // Password should remain unchanged
-    REQUIRE(pw.matches("Correct1"));
-}
-
-TEST_CASE("Password: change rejects invalid new password", "[password][edge]") {
-    Password pw("Correct1");
-    REQUIRE_THROWS_AS(pw.change("Correct1", "short"), std::invalid_argument);
-    REQUIRE_THROWS_AS(pw.change("Correct1", "NoDigitHere"), std::invalid_argument);
-    // Password should remain unchanged
-    REQUIRE(pw.matches("Correct1"));
-}
-
-TEST_CASE("Password: no getPassword method exists", "[password][encapsulation]") {
-    // This is a compile-time check.
-    // If a student adds getPassword(), this test concept reminds them
-    // not to. We verify encapsulation by checking matches() only.
-    Password pw("Secret99");
-    REQUIRE(pw.matches("Secret99"));
-    REQUIRE(pw.getLength() == 8);
-    // We can only verify the password through matches(), not by reading it.
+    cout << endl;
+    cout << "=== Lab Complete ===" << endl;
+    return 0;
 }
